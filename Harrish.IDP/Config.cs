@@ -13,21 +13,25 @@ public static class Config
             new IdentityResource("roles", 
                 "Your role(s)", 
                 new [] { "role" }),
+            new IdentityResource("country", "The country your're living in", new List<string>() {  "country" })
         };
 
     public static IEnumerable<ApiResource> ApiResources =>
        new ApiResource[]
        {
-             new ApiResource("imagegalleryapi", "Image Gallery Api")
+             new ApiResource("imagegalleryapi", "Image Gallery Api", 
+                 new [] { "role", "country" })
              {
-                 Scopes = { "imagegalleryapi.fullaccess" }
+                 Scopes = { "imagegalleryapi.fullaccess", "imagegalleryapi.write", "imagegalleryapi.read" }
              }
        };
 
     public static IEnumerable<ApiScope> ApiScopes =>
         new ApiScope[]
             { 
-            new ApiScope("imagegalleryapi.fullaccess")
+                new ApiScope("imagegalleryapi.fullaccess"),
+                new ApiScope("imagegalleryapi.write"),
+                new ApiScope("imagegalleryapi.read")
             };
 
     public static IEnumerable<Client> Clients =>
@@ -38,6 +42,11 @@ public static class Config
                     ClientName= "Image Gallery",
                     ClientId = "imagegalleryclient",
                     AllowedGrantTypes = GrantTypes.Code,
+                    AllowOfflineAccess = true,
+                    UpdateAccessTokenClaimsOnRefresh = true,
+                    //IdentityTokenLifetime = 
+                    //AuthorizationCodeLifetime = 
+                    AccessTokenLifetime = 120,
                     RedirectUris =
                     {
                         "https://localhost:7184/signin-oidc"
@@ -52,7 +61,10 @@ public static class Config
                         IdentityServerConstants.StandardScopes.OpenId,
                         IdentityServerConstants.StandardScopes.Profile,
                         "roles",
-                        "imagegalleryapi.fullaccess"
+                        //"imagegalleryapi.fullaccess",
+                        "imagegalleryapi.read",
+                        "imagegalleryapi.write",
+                        "country"
                     },
                     ClientSecrets =
                     {

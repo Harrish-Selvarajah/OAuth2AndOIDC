@@ -1,6 +1,9 @@
+using ImageGallery.API.Authorization;
 using ImageGallery.API.DbContexts;
 using ImageGallery.API.Services;
+using ImageGallery.Authorization;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using System.IdentityModel.Tokens.Jwt;
 
@@ -19,6 +22,8 @@ builder.Services.AddDbContext<GalleryContext>(options =>
 
 // register the repository
 builder.Services.AddScoped<IGalleryRepository, GalleryRepository>();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IAuthorizationHandler, MustOwnImageHandler>();
 
 // register AutoMapper-related services
 builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
@@ -28,15 +33,32 @@ JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = "https://localhost:5001";
+        options.Authority = "https://localhost:5001/";
         options.Audience = "imagegalleryapi";
         options.TokenValidationParameters = new ()
         { 
             NameClaimType = "given_name",
             RoleClaimType = "role",
-            ValidTypes= new[] { "alt+jwt" }
+            ValidTypes = new[] { "at+jwt" }
         };
     });
+
+builder.Services.AddAuthorization(AuthorizationOptions =>
+{
+    AuthorizationOptions.AddPolicy("UserCanAddImage",
+        AuthorizationPolicies.CanAddImage());
+    AuthorizationOptions.AddPolicy(
+        "ClientApplicationCanWrite", policyBuilder =>
+        {
+            policyBuilder.RequireClaim("scope", "imagegalleryapi.write");
+        });
+    AuthorizationOptions.AddPolicy(
+    "MustOwnImage", policyBuilder =>
+    {
+        policyBuilder.RequireAuthenticatedUser();
+        policyBuilder.AddRequirements(new MustOwnImageRequirement());
+    });
+});
 
 var app = builder.Build();
 
